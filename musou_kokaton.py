@@ -141,14 +141,14 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird):
+    def __init__(self, bird: Bird, angle0: int = 0):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
         """
         super().__init__()
         self.vx, self.vy = bird.dire
-        angle = math.degrees(math.atan2(-self.vy, self.vx))
+        angle = math.degrees(math.atan2(-self.vy, self.vx)) + angle0 # angle0を追加する
         self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
@@ -165,6 +165,25 @@ class Beam(pg.sprite.Sprite):
         self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
         if check_bound(self.rect) != (True, True):
             self.kill()
+
+class NeoBeam:
+    """
+    複数方向にビームを生成するクラス
+    """
+    def __init__(self, bird: Bird, num: int):
+        self.bird = bird  # ビームを発射するこうかとん
+        self.num = num  # 生成するビーム数
+    def gen_beams(self) -> list[Beam]:
+        """
+        -50度から+50度の範囲で複数のBeamを生成する
+        """
+        beam_lst = [] # 生成したビームを格納するリスト
+        step = 100 // (self.num - 1) # ビーム同士の角度差
+
+        for angle in range(-50, 51, step):
+            beam_lst.append(Beam(self.bird, angle)) # 指定角度のビームを生成してリストに追加
+
+        return beam_lst
 
 
 class Explosion(pg.sprite.Sprite):
@@ -303,12 +322,16 @@ def main():
             if event.type == pg.QUIT:
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
+                if key_lst[pg.K_LSHIFT]: # 左Shiftキーを押しながらスペースキーで弾幕を発射
+                    beams.add(*NeoBeam(bird, 5).gen_beams()) # 5方向のビームをBeamグループに追加
+                else: # スペースキーのみ押下
+                    beams.add(Beam(bird)) # 通常のビームを発射
             # zキー押下で防御壁を生成
             if event.type == pg.KEYDOWN and event.key == pg.K_z: # イベントはzキーを伸ばしたらシールドを使う
                 if score.value > 50 and len(shields) == 0: # スコアが50より大，かつ防御壁が存在しない場合のみ発動
                     shields.add(Shield(bird, 400))
                     score.value -= 50 # 10点ダウン
+        screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
