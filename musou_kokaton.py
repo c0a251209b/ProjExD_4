@@ -373,31 +373,31 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 0
+
+            # スペースキー押下でビームを発射
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
-            #EMPの条件判定
-            if score.value > 20 and (event.type == pg.KEYDOWN and event.key == pg.K_e):
+                if key_lst[pg.K_LSHIFT]:  # 左Shiftキーを押しながらスペースキーで弾幕を発射
+                    beams.add(*NeoBeam(bird, 5).gen_beams())  # 5方向のビームを追加
+                else:
+                    beams.add(Beam(bird))  # 通常のビームを発射
+
+            # eキー押下でEMPを発動
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value > 20:
                 score.value -= 20
-                emp = Emp(emys,bombs)
+                emp = Emp(emys, bombs)
                 emp.update(screen)
 
-
-                if key_lst[pg.K_LSHIFT]: # 左Shiftキーを押しながらスペースキーで弾幕を発射
-                    beams.add(*NeoBeam(bird, 5).gen_beams()) # 5方向のビームをBeamグループに追加
-                else: # スペースキーのみ押下
-                    beams.add(Beam(bird)) # 通常のビームを発射
             # zキー押下で防御壁を生成
-            if event.type == pg.KEYDOWN and event.key == pg.K_z: # イベントはzキーを伸ばしたらシールドを使う
-                if score.value > 50 and len(shields) == 0: # スコアが50より大，かつ防御壁が存在しない場合のみ発動
+            if event.type == pg.KEYDOWN and event.key == pg.K_z:
+                if score.value > 50 and len(shields) == 0:
                     shields.add(Shield(bird, 400))
-                    score.value -= 50 # 10点ダウン
-                beams.add(Beam(bird))
-            
+                    score.value -= 50  # スコアを50消費
+
+            # xキー押下で重力場を発動
             if event.type == pg.KEYDOWN and event.key == pg.K_x and score.value >= 200:
-                gravities.add(Gravity(400)) # 重力場を400フレーム発生
+                gravities.add(Gravity(400))
                 score.value -= 200  # スコアを200消費
-            
-        screen.blit(bg_img, [0, 0])
+                
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
@@ -431,9 +431,9 @@ def main():
             exps.add(Explosion(bomb, 50))
             score.value += 1
         
-        for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
+        for bomb in pg.sprite.spritecollide(bird, bombs, True):
             if bomb.state == "inactive":
-                bomb.kill()
+                continue
             else:
                 bird.change_img(8, screen)  # こうかとん悲しみエフェクト
                 score.update(screen)
